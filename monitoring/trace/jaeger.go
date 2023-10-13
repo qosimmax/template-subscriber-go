@@ -36,10 +36,15 @@ func initResource() *sdkresource.Resource {
 // about the application.
 func TracerProvider(cfg *config.Config) (*tracesdk.TracerProvider, error) {
 	// Create the Jaeger exporter
-	exp, err := jaeger.New(jaeger.WithAgentEndpoint(jaeger.WithAgentPort(cfg.JaegerAgentPort)))
+	exp, err := jaeger.New(
+		jaeger.WithAgentEndpoint(
+			jaeger.WithAgentHost(cfg.JaegerAgentHost),
+			jaeger.WithAgentPort(cfg.JaegerAgentPort)),
+	)
 	if err != nil {
 		return nil, err
 	}
+
 	tp := tracesdk.NewTracerProvider(
 		// Always be sure to batch in production.
 		tracesdk.WithBatcher(exp),
