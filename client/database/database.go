@@ -13,13 +13,6 @@ import (
 // Client holds the database client and prepared statements.
 type Client struct {
 	DB *sqlx.DB
-
-	createAccountDataStmt     *sqlx.Stmt
-	createCorpAccountDataStmt *sqlx.Stmt
-	updateCorpAccountDataStmt *sqlx.Stmt
-	deleteCorpAccountDataStmt *sqlx.Stmt
-	getMytaxiIDStmt           *sqlx.Stmt
-	payOrderStmt              *sqlx.Stmt
 }
 
 // Init sets up a new database client.
