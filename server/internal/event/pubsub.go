@@ -7,7 +7,10 @@ import (
 	"template-subscriber-go/client/pubsub"
 	"template-subscriber-go/example"
 	"template-subscriber-go/monitoring/metrics"
+	"template-subscriber-go/monitoring/trace"
 	"time"
+
+	"go.opentelemetry.io/otel"
 
 	log "github.com/sirupsen/logrus"
 
@@ -34,6 +37,10 @@ func (e *PubSubEvent) SubscribeAndListen(ctx context.Context, c *pubsub.Client, 
 
 func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 	handler := func(ctx context.Context, msg *nats.Msg) {
+		ctx = trace.ExtractFromCarrier(ctx, header(msg.Header), e.Name)
+		_, span := otel.Tracer("").Start(ctx, e.Name)
+		defer span.End()
+
 		metrics.ReceivedMessage(ctx, e.Name, 1)
 		start := time.Now()
 		defer func() {
@@ -48,8 +55,8 @@ func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 		if err != nil {
 			// If the error is not an expected error, log and record the error
 			if !errors.As(err, &errExpected) {
-
 				log.Error(err.Error())
+				span.RecordError(err)
 				metrics.OccurredError(ctx, e.Name)
 			}
 
