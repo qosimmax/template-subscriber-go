@@ -59,7 +59,7 @@ func TracerProvider(cfg *config.Config) (*tracesdk.TracerProvider, error) {
 	)
 
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	return tp, nil
 }
