@@ -13,6 +13,7 @@ import (
 	"template-subscriber-go/client/database"
 	"template-subscriber-go/client/pubsub"
 	"template-subscriber-go/config"
+	"template-subscriber-go/monitoring/metrics"
 	"template-subscriber-go/server/internal/event"
 	"template-subscriber-go/server/internal/handler"
 
@@ -72,7 +73,7 @@ func (s *Server) Serve(ctx context.Context, errc chan<- error) {
 }
 
 func (s *Server) serveHTTP(errc chan<- error) {
-	//metrics.RegisterPrometheusCollectors() // modifies global state, yuck
+	metrics.RegisterPrometheusCollectors()
 	http.Handle("/metrics", promhttp.Handler())
 
 	http.HandleFunc("/_healthz", handler.Healthz)

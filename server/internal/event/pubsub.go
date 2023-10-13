@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"template-subscriber-go/client/pubsub"
 	"template-subscriber-go/example"
+	"template-subscriber-go/monitoring/metrics"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/nats-io/nats.go"
 )
@@ -31,10 +34,11 @@ func (e *PubSubEvent) SubscribeAndListen(ctx context.Context, c *pubsub.Client, 
 
 func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 	handler := func(ctx context.Context, msg *nats.Msg) {
+		metrics.ReceivedMessage(ctx, e.Name, 1)
 		start := time.Now()
 		defer func() {
-			_ = time.Since(start)
-			//metrics.ObserveTimeToProcess(duration.Seconds())
+			duration := time.Since(start)
+			metrics.ObserveTimeToProcess(ctx, duration.Seconds())
 		}()
 
 		var errNonRecoverable example.ErrNonRecoverable
@@ -45,6 +49,8 @@ func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 			// If the error is not an expected error, log and record the error
 			if !errors.As(err, &errExpected) {
 
+				log.Error(err.Error())
+				metrics.OccurredError(ctx, e.Name)
 			}
 
 			// If the error is not a non-recoverable error, it means it is
