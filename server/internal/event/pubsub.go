@@ -10,6 +10,8 @@ import (
 	"template-subscriber-go/monitoring/trace"
 	"time"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"go.opentelemetry.io/otel"
 
 	log "github.com/sirupsen/logrus"
@@ -58,6 +60,7 @@ func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 			// If the error is not an expected error, log and record the error
 			if !errors.As(err, &errExpected) {
 				log.Error(err.Error())
+				span.SetStatus(codes.Error, "handle event failed")
 				span.RecordError(err)
 				metrics.OccurredError(ctx, e.Name)
 			}
