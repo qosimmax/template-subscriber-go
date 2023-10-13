@@ -29,6 +29,8 @@ type PubSubEvent struct {
 	Subscription     nats.JetStreamContext
 }
 
+var tracer = otel.Tracer("template-subscribe-go")
+
 // SubscribeAndListen subscribes to a PubSubEvent.
 func (e *PubSubEvent) SubscribeAndListen(ctx context.Context, c *pubsub.Client, errc chan<- error) {
 	e.Subscription = c
@@ -38,7 +40,7 @@ func (e *PubSubEvent) SubscribeAndListen(ctx context.Context, c *pubsub.Client, 
 func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 	handler := func(ctx context.Context, msg *nats.Msg) {
 		ctx = trace.ExtractFromCarrier(ctx, header(msg.Header), e.Name)
-		_, span := otel.Tracer("").Start(ctx, e.Name)
+		ctx, span := tracer.Start(ctx, e.Name)
 		defer span.End()
 
 		metrics.ReceivedMessage(ctx, e.Name, 1)
