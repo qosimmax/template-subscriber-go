@@ -28,7 +28,7 @@ func RegisterPrometheusCollectors() {
 	}
 
 	provider := metric.NewMeterProvider(metric.WithReader(exporter))
-	meter := provider.Meter("api-gateway")
+	meter := provider.Meter("template-subscribe-go")
 
 	messagesReceived, _ = meter.Int64Counter("messages_received",
 		api.WithDescription("Number of messages received from PubSub."),
