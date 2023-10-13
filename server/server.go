@@ -14,8 +14,11 @@ import (
 	"template-subscriber-go/client/pubsub"
 	"template-subscriber-go/config"
 	"template-subscriber-go/monitoring/metrics"
+	"template-subscriber-go/monitoring/trace"
 	"template-subscriber-go/server/internal/event"
 	"template-subscriber-go/server/internal/handler"
+
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -23,10 +26,11 @@ import (
 
 // Server holds an HTTP server, config and all the clients.
 type Server struct {
-	Config *config.Config
-	HTTP   *http.Server
-	DB     *database.Client
-	PubSub *pubsub.Client
+	Config         *config.Config
+	HTTP           *http.Server
+	DB             *database.Client
+	PubSub         *pubsub.Client
+	TracerProvider *tracesdk.TracerProvider
 }
 
 // Create sets up a server with necessary all clients.
@@ -57,6 +61,12 @@ func (s *Server) Create(ctx context.Context, config *config.Config) error {
 // It also makes sure that the server gracefully shuts down on exit.
 // Returns an error if an error occurs.
 func (s *Server) Serve(ctx context.Context, errc chan<- error) {
+	var err error
+	s.TracerProvider, err = trace.TracerProvider(s.Config)
+	if err != nil {
+		errc <- fmt.Errorf("init global tracer: %w", err)
+	}
+
 	go s.serveHTTP(errc)
 	go s.subscribeAndListen(ctx, errc)
 
@@ -98,6 +108,14 @@ func (s *Server) subscribeAndListen(ctx context.Context, errc chan<- error) {
 }
 
 func (s *Server) shutdown(ctx context.Context) {
+	if err := s.TracerProvider.Shutdown(ctx); err != nil {
+		log.Error(err.Error())
+	}
+
+	if err := s.DB.Close(); err != nil {
+		log.Error(err.Error())
+	}
+
 	if err := s.HTTP.Shutdown(ctx); err != nil {
 		log.Error(err.Error())
 	}
