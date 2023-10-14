@@ -16,13 +16,15 @@ type Handler interface {
 
 // GetPubSubEvents describes all the pubsub events to listen to.
 func GetPubSubEvents(db *database.Client) PubSubEvents {
-	// Define your google pubsub events here
+	// Define your  pubsub events here
 	psEvents := PubSubEvents{
 		PubSubEvent{
 			Name:             "Example",
 			Queue:            "example",
 			SubscriptionName: "example",
-			Handler:          handler.Example{},
+			Handler: handler.Example{
+				DB: db,
+			},
 		},
 	}
 

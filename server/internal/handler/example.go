@@ -9,7 +9,9 @@ import (
 )
 
 // Example is an example event.
-type Example struct{}
+type Example struct {
+	DB example.DataRecorder
+}
 
 // Handle is the handler for the example event.
 func (e Example) Handle(ctx context.Context, data []byte) error {
@@ -21,5 +23,10 @@ func (e Example) Handle(ctx context.Context, data []byte) error {
 		}
 	}
 	// Do stuff here
+	err = e.DB.RecordExampleData(ctx, exampleData)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
