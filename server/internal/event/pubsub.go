@@ -81,7 +81,7 @@ func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 	}
 
 	//@TODO get worker numbers from env
-	queue := make(chan *nats.Msg, 10)
+	queue := make(chan *nats.Msg, 1)
 	worker := func(ctx context.Context, queue chan *nats.Msg) {
 		for msg := range queue {
 			handler(ctx, msg)
