@@ -10,6 +10,8 @@ import (
 	"template-subscriber-go/monitoring/trace"
 	"time"
 
+	"go.opentelemetry.io/otel/propagation"
+
 	"go.opentelemetry.io/otel/codes"
 
 	"go.opentelemetry.io/otel"
@@ -41,7 +43,7 @@ func (e *PubSubEvent) receive(ctx context.Context, errc chan<- error) {
 	var tracer = otel.Tracer(e.Name)
 
 	handler := func(ctx context.Context, msg *nats.Msg) {
-		ctx = trace.ExtractFromCarrier(ctx, header(msg.Header), e.Name)
+		ctx = trace.ExtractFromCarrier(ctx, propagation.HeaderCarrier(msg.Header), e.Name)
 		ctx, span := tracer.Start(ctx, e.Name)
 		defer span.End()
 
