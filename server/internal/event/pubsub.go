@@ -10,15 +10,11 @@ import (
 	"template-subscriber-go/monitoring/trace"
 	"time"
 
-	"go.opentelemetry.io/otel/propagation"
-
-	"go.opentelemetry.io/otel/codes"
-
-	"go.opentelemetry.io/otel"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/nats-io/nats.go"
+	log "github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // PubSubEvents contains a slice of PubSubEvent.
