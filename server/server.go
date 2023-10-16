@@ -18,6 +18,7 @@ import (
 	"template-subscriber-go/server/internal/event"
 	"template-subscriber-go/server/internal/handler"
 
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -26,17 +27,17 @@ import (
 
 // Server holds an HTTP server, config and all the clients.
 type Server struct {
-	Config         *config.Config
-	HTTP           *http.Server
-	DB             *database.Client
-	PubSub         *pubsub.Client
-	TracerProvider *tracesdk.TracerProvider
+	Config          *config.Config
+	HTTP            *http.Server
+	DB              *database.Client
+	PubSub          *pubsub.Client
+	TracerProvider  *tracesdk.TracerProvider
+	MetricsProvider *metricsdk.MeterProvider
 }
 
 // Create sets up a server with necessary all clients.
 // Returns an error if an error occurs.
 func (s *Server) Create(ctx context.Context, config *config.Config) error {
-
 	var dbClient database.Client
 	if err := dbClient.Init(ctx, config); err != nil {
 		return fmt.Errorf("database client: %w", err)
@@ -61,11 +62,7 @@ func (s *Server) Create(ctx context.Context, config *config.Config) error {
 // It also makes sure that the server gracefully shuts down on exit.
 // Returns an error if an error occurs.
 func (s *Server) Serve(ctx context.Context, errc chan<- error) {
-	var err error
-	s.TracerProvider, err = trace.TracerProvider(s.Config)
-	if err != nil {
-		errc <- fmt.Errorf("init global tracer: %w", err)
-	}
+	s.addTracingAndMetrics(errc)
 
 	go s.serveHTTP(errc)
 	go s.subscribeAndListen(ctx, errc)
@@ -83,14 +80,26 @@ func (s *Server) Serve(ctx context.Context, errc chan<- error) {
 }
 
 func (s *Server) serveHTTP(errc chan<- error) {
-	metrics.RegisterPrometheusCollectors()
 	http.Handle("/metrics", promhttp.Handler())
-
 	http.HandleFunc("/_healthz", handler.Healthz)
 
 	if err := s.HTTP.ListenAndServe(); err != http.ErrServerClosed {
 		errc <- err
 	}
+}
+
+func (s *Server) addTracingAndMetrics(errc chan<- error) {
+	var err error
+	s.TracerProvider, err = trace.TracerProvider(s.Config)
+	if err != nil {
+		errc <- fmt.Errorf("init global tracer: %w", err)
+	}
+
+	s.MetricsProvider, err = metrics.MetricsProvider(s.Config)
+	if err != nil {
+		errc <- fmt.Errorf("init metrics: %w", err)
+	}
+
 }
 
 func (s *Server) subscribeAndListen(ctx context.Context, errc chan<- error) {
@@ -109,6 +118,10 @@ func (s *Server) subscribeAndListen(ctx context.Context, errc chan<- error) {
 
 func (s *Server) shutdown(ctx context.Context) {
 	if err := s.TracerProvider.Shutdown(ctx); err != nil {
+		log.Error(err.Error())
+	}
+
+	if err := s.MetricsProvider.Shutdown(ctx); err != nil {
 		log.Error(err.Error())
 	}
 
