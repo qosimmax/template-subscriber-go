@@ -1,6 +1,7 @@
 .PHONY: build install server test
 
 PROJECT_NAME=$(shell basename $(CURDIR))
+PROTO_PATH=$(CURDIR)/proto
 
 ## build: build the application
 build:
@@ -33,3 +34,19 @@ help:
 docker:
 	docker build -t $(PROJECT_NAME) .
 	docker run --rm --name $(PROJECT_NAME) -p 8000:8000 --env-file .env -it $(PROJECT_NAME)
+
+
+gen-proto:
+	protoc \
+    --go_out=./example/pb \
+    --go_opt=paths=import \
+    -I=$(PROTO_PATH)/fake-api \
+     $(PROTO_PATH)/fake-api/*.proto \
+
+
+
+add-submodule:
+	git submodule add git@github.com:qosimmax/services-proto.git ./proto
+
+pull-proto-module:
+	git submodule update --recursive --remote
