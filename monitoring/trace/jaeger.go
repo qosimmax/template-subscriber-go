@@ -46,6 +46,9 @@ func TracerProvider(cfg *config.Config) (*tracesdk.TracerProvider, error) {
 		// Always be sure to batch in production.
 		tracesdk.WithBatcher(exporter),
 		tracesdk.WithResource(resource),
+		//When in a production environment,
+		// consider using the ParentBased sampler with the TraceIDRatioBased sampler.
+		tracesdk.WithSampler(tracesdk.AlwaysSample()),
 	)
 
 	otel.SetTracerProvider(tp)
