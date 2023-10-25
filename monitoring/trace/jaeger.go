@@ -1,12 +1,13 @@
 package trace
 
 import (
+	"context"
+	"fmt"
 	"template-subscriber-go/config"
 
-	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
@@ -19,14 +20,11 @@ import (
 // TracerProvider will also use a Resource configured with all the information
 // about the application.
 func TracerProvider(cfg *config.Config) (*tracesdk.TracerProvider, error) {
-	// Create the Jaeger exporter
-	exporter, err := jaeger.New(
-		jaeger.WithAgentEndpoint(
-			jaeger.WithAgentHost(cfg.JaegerAgentHost),
-			jaeger.WithAgentPort(cfg.JaegerAgentPort)),
-	)
+	exporter, err := otlptracegrpc.New(context.Background(),
+		otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%s", cfg.JaegerAgentHost, cfg.JaegerAgentPort)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create gRPC exporter: %w", err)
 	}
 
 	resource, err := sdkresource.Merge(
